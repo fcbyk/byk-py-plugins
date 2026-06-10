@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "byk-lansend"
-version = "2026.6.6"
+version = "2026.6.10"
 description = "a plugin for byk, start a local web server for sharing files over LAN"
 readme = "README.md"
 requires-python = ">=3.10"

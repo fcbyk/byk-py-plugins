@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byk-pick"
+version = "2026.6.9"
+description = "A bykpy plugin for web-based random picker and file lottery."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "fcbyk", email = "731240932@qq.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "bykpy>=0.1.0,<1.0.0",
+    "click>=8.0.0",
+    "flask>=2.0",
+    "pyperclip>=1.9.0,<2.0.0",
+    "waitress>=2.0.0",
+]
+
+[project.optional-dependencies]
+byk=[
+    "byk>=0.1.0,<1.0.0",
+]
+
+[project.entry-points."bykpy.plugins"]
+byk-pick = "bykpick.main:Plugin"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = { find = { where = ["src"], include = ["bykpick*"] } }
+
+[tool.setuptools.package-data]
+bykpick = ["dist/**/*"]

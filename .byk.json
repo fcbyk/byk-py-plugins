@@ -8,9 +8,9 @@
         "撤销上一次提交": "git reset --soft HEAD~1"
     },
 
-    "bykcli": {
-        "安装": "pip install bykcli",
-        "卸载": "pip uninstall bykcli"
+    "byk": {
+        "安装": "pip install byk",
+        "卸载": "pip uninstall byk"
     },
 
     "byk-hello": {

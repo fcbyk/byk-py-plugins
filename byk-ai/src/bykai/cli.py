@@ -1,5 +1,9 @@
+import json
+import sys
+
 import click
 from bykpy.api import CommandContext, pass_command_context
+from rich.console import Console
 
 from .service import (
     AIService,
@@ -8,6 +12,8 @@ from .service import (
     extract_assistant_reply,
 )
 from . import renderer as ai_renderer
+
+console = Console()
 
 DEFAULT_CONFIG = {
     'model': 'deepseek-v4-flash',
@@ -32,7 +38,7 @@ SYSTEM_PROMPT_RICH = (
 
 def _print_streaming_chunks(chunks) -> str:
     reply = ''
-    click.secho('AI: ', fg='blue', nl=False, bold=True)
+    console.print('[bold blue]AI:[/bold blue] ', end='')
     for chunk in chunks:
         delta = chunk['choices'][0]['delta'].get('content', '')
         if delta:
@@ -40,6 +46,108 @@ def _print_streaming_chunks(chunks) -> str:
             reply += delta
     click.echo('')
     return reply
+
+
+def _interactive_setup(state_config: dict) -> bool:
+    """交互式配置向导。按 Enter 使用默认值，输入新值则更新配置。
+    
+    Returns: True if any config was changed.
+    """
+    console.print()
+    console.print('⚙️  [bold cyan]AI 配置设置[/bold cyan]')
+    console.print('[dim]按 Enter 使用方括号中的默认值，输入新值后按 Enter 更新。[/dim]\n')
+    
+    changed = False
+
+    # --- Model ---
+    current = state_config.get('model', DEFAULT_CONFIG['model'])
+    value = click.prompt(
+        click.style('  Model', fg='yellow', bold=True),
+        default=str(current) if current else '',
+        show_default=True,
+    )
+    if value and value != str(current):
+        state_config['model'] = value
+        changed = True
+
+    # --- API Key ---
+    has_key = bool(state_config.get('api_key'))
+    if has_key:
+        console.print(f'  [bold yellow]API Key:[/bold yellow] [dim][{"*" * 12}][/dim]  [dim](按 Enter 保持不变)[/dim]')
+    else:
+        console.print('  [bold yellow]API Key:[/bold yellow] [dim][(未设置)][/dim]')
+    value = click.prompt('  >', default='', show_default=False, hide_input=True)
+    if value:
+        state_config['api_key'] = value
+        changed = True
+
+    # --- API URL ---
+    current = state_config.get('api_url', DEFAULT_CONFIG['api_url'])
+    value = click.prompt(
+        click.style('  API URL', fg='yellow', bold=True),
+        default=str(current) if current else '',
+        show_default=True,
+    )
+    if value and value != str(current):
+        state_config['api_url'] = value
+        changed = True
+
+    # --- Stream ---
+    current = state_config.get('stream', DEFAULT_CONFIG['stream'])
+    if isinstance(current, str):
+        current = current.lower() in ('1', 'true')
+    current_bool = bool(current)
+    current_label = '[green]ON[/green]' if current_bool else '[dim]OFF[/dim]'
+    value = click.confirm(
+        click.style(f'  Stream（流式输出，当前：{"ON" if current_bool else "OFF"}）', fg='yellow', bold=True),
+        default=current_bool,
+    )
+    if value != current_bool:
+        state_config['stream'] = value
+        changed = True
+
+    # --- Rich rendering ---
+    current = state_config.get('rich', DEFAULT_CONFIG['rich'])
+    if isinstance(current, str):
+        current = current.lower() in ('1', 'true')
+    current_bool = bool(current)
+    value = click.confirm(
+        click.style(f'  Rich（富文本渲染，当前：{"ON" if current_bool else "OFF"}）', fg='yellow', bold=True),
+        default=current_bool,
+    )
+    if value != current_bool:
+        state_config['rich'] = value
+        changed = True
+
+    # --- Extra body ---
+    current = state_config.get('extra_body')
+    if current:
+        display = json.dumps(current, ensure_ascii=False)
+        value = click.prompt(
+            click.style('  Extra body（JSON，可选）', fg='yellow', bold=True),
+            default=display,
+            show_default=True,
+        )
+    else:
+        value = click.prompt(
+            click.style('  Extra body（JSON，可选）', fg='yellow', bold=True),
+            default='',
+            show_default=False,
+        )
+
+    if value.strip():
+        try:
+            parsed = json.loads(value)
+            state_config['extra_body'] = parsed
+            changed = True
+        except json.JSONDecodeError:
+            console.print('  [yellow]⚠ JSON 格式无效，保持当前值不变。[/yellow]')
+    elif value == '' and current is not None:
+        state_config['extra_body'] = None
+        changed = True
+
+    console.print()
+    return changed
 
 
 def _chat_loop(ctx: CommandContext):
@@ -53,13 +161,31 @@ def _chat_loop(ctx: CommandContext):
     system_prompt = SYSTEM_PROMPT_RICH if config.get('rich') else SYSTEM_PROMPT
     messages = [{"role": "system", "content": system_prompt}]
 
-    click.secho('Chat started. Type "exit" to quit.', fg='cyan')
+    model = config.get('model', 'unknown')
+    rich_on = bool(config.get('rich', True))
+    stream_on = bool(config.get('stream', True))
+
+    rich_label = '[green]ON[/green]' if rich_on else '[dim]OFF[/dim]'
+    stream_label = '[green]ON[/green]' if stream_on else '[dim]OFF[/dim]'
+
+    sep = '─' * 50
+    console.print(f'[cyan]{sep}[/cyan]')
+    console.print(
+        f'[cyan]Model:[/cyan] [yellow]{model}[/yellow]  '
+        f'[cyan]Rich:[/cyan] {rich_label}  '
+        f'[cyan]Stream:[/cyan] {stream_label}'
+    )
+    console.print('[dim]输入 exit 退出 | Ctrl+C 中断[/dim]')
+    console.print(f'[cyan]{sep}[/cyan]')
+
 
     while True:
         try:
-            user_input = input(click.style('You: ', fg='green', bold=True)).strip()
+            console.print('[bold green]You:[/bold green] ', end='')
+            sys.stdout.flush()
+            user_input = input().strip()
         except (EOFError, KeyboardInterrupt):
-            click.secho('\nChat ended.', fg='cyan')
+            console.print('\n[cyan]Chat ended.[/cyan]')
             break
 
         if user_input.lower() == 'exit':
@@ -91,25 +217,23 @@ def _chat_loop(ctx: CommandContext):
                     ai_renderer.render_non_streaming_reply(reply)
             else:
                 if (not req.stream) and (not config.get('rich')):
-                    click.secho('AI: ', fg='blue', nl=False)
-                    click.echo(' 正在思考...', nl=False)
+                    console.print('[blue]AI:[/blue] 正在思考...', end='')
                 resp_or_chunks = service.chat(req)
 
                 if req.stream:
                     reply = _print_streaming_chunks(resp_or_chunks)
                 else:
                     reply = extract_assistant_reply(resp_or_chunks)
-                    click.echo('\r', nl=False)
-                    click.secho('AI: ', fg='blue', nl=False)
-                    click.echo(f' {reply}')
+                    print('\r', end='')
+                    console.print(f'[blue]AI:[/blue] {reply}')
 
             messages.append({"role": "assistant", "content": reply})
 
         except AIServiceError as e:
-            click.secho(f'Error: {e}', fg='red')
+            console.print(f'[red]Error: {e}[/red]')
             messages.pop()
         except Exception as e:
-            click.secho(f'Unknown error: {e}', fg='red')
+            console.print(f'[red]Unknown error: {e}[/red]')
             messages.pop()
 
 
@@ -120,62 +244,53 @@ def _chat_loop(ctx: CommandContext):
     default=False,
     help="show config and exit"
 )
-@click.option('--model', '-m', help='set model')
-@click.option('--api-key', '-k', help='set api key')
-@click.option('--api-url', '-u', help='set api url (full url)')
-@click.option('--stream', '-s', help='set stream, 0 for false, 1 for true')
-@click.option('--rich', '-r', help='enable rich rendering, 0 for false, 1 for true')
-@click.option('--extra-body', '-e', help='set extra body as JSON string (e.g., \'{"reasoning": {"enabled": true}}\')')
+@click.option(
+    '--set', '-S',
+    is_flag=True,
+    default=False,
+    help='interactive configuration setup'
+)
 @pass_command_context
-def ai(ctx: CommandContext, config, model, api_key, api_url, stream, rich, extra_body):
+def ai(ctx: CommandContext, config, set):
     store = ctx.state()
     state_config = store.load()
     if not state_config:
         state_config = DEFAULT_CONFIG.copy()
-    
-    cli_options = {
-        'model': model,
-        'api_key': api_key,
-        'api_url': api_url,
-        'stream': stream,
-        'rich': rich,
-        'extra_body': extra_body,
-    }
-    
-    for key, value in cli_options.items():
-        if value is not None:
-            if key in ('stream', 'rich'):
-                new_val = str(value).lower() in ['1', 'true']
-            elif key == 'extra_body':
-                import json
-                try:
-                    new_val = json.loads(value) if isinstance(value, str) else value
-                except json.JSONDecodeError:
-                    click.secho(f'Warning: Invalid JSON for extra_body: {value}', fg='yellow')
-                    continue
-            else:
-                new_val = value
-            
-            if state_config.get(key) != new_val:
-                state_config[key] = new_val
-    
+
+    # --config: 查看配置
     if config:
-        click.secho('AI Configuration:', fg='cyan', bold=True)
+        console.print('[bold cyan]AI Configuration:[/bold cyan]')
         for k, v in state_config.items():
-            click.echo(f"  {click.style(k, fg='cyan')}: {click.style(str(v), fg='yellow')}")
-        click.echo(f"\nState file: {store.path}")
+            display = v
+            if k == 'api_key' and v:
+                display = '*' * 12
+            elif k == 'extra_body' and v:
+                display = json.dumps(v, ensure_ascii=False)
+            console.print(f'  [cyan]{k}[/cyan]: [yellow]{display}[/yellow]')
+        console.print(f'\n[dim]State file: {store.path}[/dim]')
         return
-    
-    has_params = any([model, api_key, api_url, stream, rich, extra_body])
-    
-    if has_params:
-        store.save(state_config)
-        click.secho(f"Config saved.", fg='green')
-        click.echo(f"State file: {store.path}")
+
+    # --set: 交互式配置
+    if set:
+        changed = _interactive_setup(state_config)
+        if changed:
+            store.save(state_config)
+            console.print('[green]✅ 配置已保存。[/green]')
+        else:
+            console.print('[dim]配置未变更。[/dim]')
+        console.print(f'[dim]State file: {store.path}[/dim]\n')
         return
-    
+
+    # api_key 不存在时，自动启动交互式配置
     if not state_config.get('api_key'):
-        click.secho('Error: api_key is not configured. Please set it via --api-key.', fg='red', err=True)
-        raise SystemExit(1)
-    
+        console.print('[yellow]⚠ API Key 未配置，进入交互式设置...[/yellow]')
+        _interactive_setup(state_config)
+        store.save(state_config)
+
+        if not state_config.get('api_key'):
+            console.print('[red]❌ 未设置 API Key，无法启动聊天。[/red]')
+            raise SystemExit(1)
+
+        console.print('[green]✅ 配置已保存，启动聊天...[/green]\n')
+
     _chat_loop(ctx)

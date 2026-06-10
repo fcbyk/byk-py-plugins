@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   root: 'content',
   lang: 'zh',
-  title: 'BYKPY 插件',
+  title: 'BYK 插件',
   globalStyles: path.join(__dirname, 'styles', 'custom.css'),
   plugins: [pluginLlms(), pluginFileTree()],
   markdown: {

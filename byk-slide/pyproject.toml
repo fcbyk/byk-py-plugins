@@ -38,7 +38,7 @@ byk=[
     "byk>=0.1.0,<1.0.0",
 ]
 
-[project.entry-points."bykpy.plugins"]
+[project.entry-points."byk.plugins"]
 byk-slide = "bykslide.main:Plugin"
 
 [tool.setuptools]

@@ -50,9 +50,9 @@ def scan_plugins() -> dict[str, dict[str, str]]:
     commands: dict[str, dict[str, str]] = {}
 
     try:
-        plugin_entries = entry_points(group="bykpy.plugins")
+        plugin_entries = entry_points(group="byk.plugins")
     except TypeError:
-        plugin_entries = entry_points().get("bykpy.plugins", [])  # type: ignore[attr-defined]
+        plugin_entries = entry_points().get("byk.plugins", [])  # type: ignore[attr-defined]
 
     for ep in plugin_entries:
         try:

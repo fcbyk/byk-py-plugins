@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "byk-hello"
 version = "2026.6.2"
-description = "bykpy example plugin"
+description = "byk example plugin"
 requires-python = ">=3.10"
 dependencies = [
     "bykpy>=0.1.0,<1.0.0",
 ]
 
-[project.entry-points."bykpy.plugins"]
+[project.entry-points."byk.plugins"]
 byk-hello = "hello.byk:Plugin"

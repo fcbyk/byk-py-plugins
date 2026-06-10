@@ -25,17 +25,19 @@ def detect_iface_type(iface: str) -> tuple[str, bool, int]:
 
 
 def get_private_networks() -> List[Dict]:
-    """获取所有局域网 IP 地址信息。"""
+    """获取所有局域网 IP 地址信息。
+
+    依赖 psutil，缺失时抛出 ImportError（含安装指引）。
+    """
     try:
         import psutil
     except ImportError:
-        return [{
-            "iface": "localhost",
-            "ips": ["127.0.0.1"],
-            "type": "loopback",
-            "virtual": True,
-            "priority": 100
-        }]
+        raise ImportError(
+            "psutil is required for get_private_networks.\n"
+            "Install it and add to your plugin dependencies:\n"
+            "    pip install psutil\n"
+            "    # then add 'psutil>=5.9.0' to pyproject.toml dependencies"
+        )
 
     results = []
     interfaces = psutil.net_if_addrs()

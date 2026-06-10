@@ -8,6 +8,22 @@ import { Tab, Tabs } from '@rspress/core/theme';
 
 网络工具函数，用于检测网络接口、获取局域网 IP 地址以及检查端口可用性。
 
+## 依赖说明
+
+`ensure_port_available` 为标准库实现，无需额外依赖。
+
+:::warning psutil
+`get_private_networks` 依赖 `psutil`。使用前请在插件的 `pyproject.toml` 中声明：
+
+```toml
+dependencies = [
+    "psutil>=5.9.0",
+]
+```
+
+缺失时 bykpy 会抛出清晰的 `ImportError` 并提示安装命令。
+:::
+
 ## get_private_networks
 
 获取所有局域网 IP 地址信息，按优先级排序。

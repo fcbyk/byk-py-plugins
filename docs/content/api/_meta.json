@@ -11,6 +11,16 @@
   },
   {
     "type": "file",
+    "name": "cli",
+    "label": "CLI 工具"
+  },
+  {
+    "type": "file",
+    "name": "web",
+    "label": "Web 工具"
+  },
+  {
+    "type": "file",
     "name": "store",
     "label": "StateStore"
   }

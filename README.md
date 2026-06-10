@@ -1,7 +1,4 @@
-# byk-py-plugins
-
-[![Python](https://img.shields.io/badge/python-%E2%89%A53.10-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/github/license/fcbyk/bykcli.svg)](https://github.com/fcbyk/bykcli/blob/main/LICENSE)
+# byk-py-plugins &middot; [![Python](https://img.shields.io/badge/python-%E2%89%A53.10-blue?logo=python&logoColor=white)](https://www.python.org/downloads/) 
 
 Monorepo for [byk](https://github.com/fcbyk/bykcli)'s Python plugin runtime, SDK, and plugins.
 

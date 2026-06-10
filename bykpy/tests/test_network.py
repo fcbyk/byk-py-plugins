@@ -75,8 +75,8 @@ class TestDetectIfaceType:
 
 
 class TestGetPrivateNetworks:
-    def test_import_error_returns_localhost(self):
-        """psutil 导入失败时返回 localhost。"""
+    def test_missing_psutil_raises_clear_error(self):
+        """psutil 缺失时抛出 ImportError，含安装指引。"""
         import builtins
         _orig_import = builtins.__import__
 
@@ -87,10 +87,8 @@ class TestGetPrivateNetworks:
 
         builtins.__import__ = _mock_import
         try:
-            result = get_private_networks()
-            assert len(result) == 1
-            assert result[0]["iface"] == "localhost"
-            assert result[0]["ips"] == ["127.0.0.1"]
+            with pytest.raises(ImportError, match="psutil is required"):
+                get_private_networks()
         finally:
             builtins.__import__ = _orig_import
 

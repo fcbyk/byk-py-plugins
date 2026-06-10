@@ -1,0 +1,9 @@
+{
+    "发布": {
+        "1": "python3 -m build",
+        "2": "git push origin --tags",
+        "3": "twine upload dist/*"
+    },
+    "本地标签": "git tag",
+    "查看远程库标签": "git ls-remote --tags origin"
+}

@@ -1,9 +1,10 @@
 import json
-import sys
 
 import click
 from bykpy.api import CommandContext, pass_command_context
 from rich.console import Console
+from prompt_toolkit import prompt
+from prompt_toolkit.styles import Style
 
 from .service import (
     AIService,
@@ -48,6 +49,9 @@ def _print_streaming_chunks(chunks) -> str:
     return reply
 
 
+pt_style = Style.from_dict({'prompt': 'bold #ffff00'})
+
+
 def _interactive_setup(state_config: dict) -> bool:
     """交互式配置向导。按 Enter 使用默认值，输入新值则更新配置。
     
@@ -61,11 +65,11 @@ def _interactive_setup(state_config: dict) -> bool:
 
     # --- Model ---
     current = state_config.get('model', DEFAULT_CONFIG['model'])
-    value = click.prompt(
-        click.style('  Model', fg='yellow', bold=True),
-        default=str(current) if current else '',
-        show_default=True,
-    )
+    value = prompt(
+        [('class:prompt', f'  Model [{current}]: ')],
+        default=str(current),
+        style=pt_style,
+    ).strip()
     if value and value != str(current):
         state_config['model'] = value
         changed = True
@@ -76,18 +80,22 @@ def _interactive_setup(state_config: dict) -> bool:
         console.print(f'  [bold yellow]API Key:[/bold yellow] [dim][{"*" * 12}][/dim]  [dim](按 Enter 保持不变)[/dim]')
     else:
         console.print('  [bold yellow]API Key:[/bold yellow] [dim][(未设置)][/dim]')
-    value = click.prompt('  >', default='', show_default=False, hide_input=True)
+    value = prompt(
+        [('class:prompt', '  > ')],
+        is_password=True,
+        style=pt_style,
+    ).strip()
     if value:
         state_config['api_key'] = value
         changed = True
 
     # --- API URL ---
     current = state_config.get('api_url', DEFAULT_CONFIG['api_url'])
-    value = click.prompt(
-        click.style('  API URL', fg='yellow', bold=True),
-        default=str(current) if current else '',
-        show_default=True,
-    )
+    value = prompt(
+        [('class:prompt', f'  API URL [{current}]: ')],
+        default=str(current),
+        style=pt_style,
+    ).strip()
     if value and value != str(current):
         state_config['api_url'] = value
         changed = True
@@ -97,11 +105,12 @@ def _interactive_setup(state_config: dict) -> bool:
     if isinstance(current, str):
         current = current.lower() in ('1', 'true')
     current_bool = bool(current)
-    current_label = '[green]ON[/green]' if current_bool else '[dim]OFF[/dim]'
-    value = click.confirm(
-        click.style(f'  Stream（流式输出，当前：{"ON" if current_bool else "OFF"}）', fg='yellow', bold=True),
-        default=current_bool,
-    )
+    suffix = '[Y/n]' if current_bool else '[y/N]'
+    answer = prompt(
+        [('class:prompt', f'  Stream（流式输出，当前：{"ON" if current_bool else "OFF"}） {suffix}: ')],
+        style=pt_style,
+    ).strip().lower()
+    value = current_bool if not answer else answer in ('y', 'yes')
     if value != current_bool:
         state_config['stream'] = value
         changed = True
@@ -111,38 +120,32 @@ def _interactive_setup(state_config: dict) -> bool:
     if isinstance(current, str):
         current = current.lower() in ('1', 'true')
     current_bool = bool(current)
-    value = click.confirm(
-        click.style(f'  Rich（富文本渲染，当前：{"ON" if current_bool else "OFF"}）', fg='yellow', bold=True),
-        default=current_bool,
-    )
+    suffix = '[Y/n]' if current_bool else '[y/N]'
+    answer = prompt(
+        [('class:prompt', f'  Rich（富文本渲染，当前：{"ON" if current_bool else "OFF"}） {suffix}: ')],
+        style=pt_style,
+    ).strip().lower()
+    value = current_bool if not answer else answer in ('y', 'yes')
     if value != current_bool:
         state_config['rich'] = value
         changed = True
 
     # --- Extra body ---
     current = state_config.get('extra_body')
-    if current:
-        display = json.dumps(current, ensure_ascii=False)
-        value = click.prompt(
-            click.style('  Extra body（JSON，可选）', fg='yellow', bold=True),
-            default=display,
-            show_default=True,
-        )
-    else:
-        value = click.prompt(
-            click.style('  Extra body（JSON，可选）', fg='yellow', bold=True),
-            default='',
-            show_default=False,
-        )
-
-    if value.strip():
+    current_display = json.dumps(current, ensure_ascii=False) if current else ''
+    value = prompt(
+        [('class:prompt', f'  Extra body（JSON，可选） [{current_display}]: ' if current_display else '  Extra body（JSON，可选）: ')],
+        default=current_display,
+        style=pt_style,
+    ).strip()
+    if value:
         try:
             parsed = json.loads(value)
             state_config['extra_body'] = parsed
             changed = True
         except json.JSONDecodeError:
             console.print('  [yellow]⚠ JSON 格式无效，保持当前值不变。[/yellow]')
-    elif value == '' and current is not None:
+    elif current is not None:
         state_config['extra_body'] = None
         changed = True
 
@@ -179,11 +182,11 @@ def _chat_loop(ctx: CommandContext):
     console.print(f'[cyan]{sep}[/cyan]')
 
 
+    style = Style.from_dict({'prompt': 'bold green'})
+
     while True:
         try:
-            console.print('[bold green]You:[/bold green] ', end='')
-            sys.stdout.flush()
-            user_input = input().strip()
+            user_input = prompt([('class:prompt', 'You: ')]).strip()
         except (EOFError, KeyboardInterrupt):
             console.print('\n[cyan]Chat ended.[/cyan]')
             break

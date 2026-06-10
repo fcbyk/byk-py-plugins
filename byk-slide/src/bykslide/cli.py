@@ -51,7 +51,7 @@ def slide(ctx: CommandContext, port):
     # 等待服务器就绪后自动打开浏览器
     def _auto_open():
         if wait_for_server_ready(port):
-            webbrowser.open(f"http://localhost:{port}")
+            webbrowser.open(f"http://{local_ip}:{port}")
 
     threading.Thread(target=_auto_open, daemon=True).start()
 

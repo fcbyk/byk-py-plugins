@@ -1,0 +1,148 @@
+---
+description: bykpy 命令上下文和运行时环境管理，包含 CommandContext、AppContext 及日志器的使用方式
+---
+
+import { Tab, Tabs } from '@rspress/core/theme';
+
+# Context
+
+命令上下文和运行时环境管理
+
+## 数据结构
+
+<Tabs>
+<Tab label="CommandContext">
+```py
+from dataclasses import dataclass
+import logging
+
+@dataclass(slots=True)
+class CommandContext:
+    """提供给子命令的便捷上下文对象，封装了常用的运行时信息"""
+
+    name: str                    # 当前命令名称
+    app: AppContext              # 应用上下文
+    logger: logging.Logger       # 命令专属日志器
+    
+    def state(self, name: str = "state") -> StateStore:
+        """获取当前命令的专属存储"""
+```
+</Tab>
+<Tab label="AppContext">
+```py
+from dataclasses import dataclass
+import logging
+
+@dataclass(slots=True)
+class AppContext:
+    """应用级核心上下文，提供全局配置和资源访问"""
+    
+    app_name: str                      # 应用名称
+    version: str                       # 版本号
+    paths: PathLayout                  # 路径布局
+    environment: EnvironmentInfo       # 环境信息
+    logger: logging.Logger             # 根日志器
+        
+    def store(self, name: str = "byk.config") -> StateStore:
+        """获取全局命名存储空间"""
+        
+    def command_store(self, command_name: str, name: str = "state") -> StateStore:
+        """获取指定命令的专属存储空间"""
+        
+    def get_command_logger(self, command_name: str) -> logging.Logger:
+        """获取命令专属的日志器，日志会自动关联到对应命令"""
+```
+</Tab>
+</Tabs>
+
+## pass_command_context
+
+装饰器函数，用于向 Click 命令注入 `CommandContext` 对象
+
+<Tabs>
+<Tab label="函数签名">
+```py
+def pass_command_context(func: Callable) -> Callable:
+    """向子命令注入便捷上下文。"""
+```
+</Tab>
+<Tab label="使用示例">
+```py
+import click
+from bykpy.api import pass_command_context, CommandContext
+
+@click.command()
+@pass_command_context
+def my_command(ctx: CommandContext):
+    """我的自定义命令"""
+    # 访问命令名称
+    click.echo(f"当前命令: {ctx.name}")
+    
+    # 访问应用信息
+    click.echo(f"应用名称: {ctx.app.app_name}")
+    click.echo(f"版本: {ctx.app.version}")
+    
+    # 使用状态存储（默认使用 state）
+    ctx.state().set("key", "value")
+    value = ctx.state().get("key")
+    
+    # 也可以使用其他命名的存储
+    ctx.state("config").set("timeout", 30)
+    ctx.state("cache").set("last_check", "2024-01-01")
+    
+    # 使用日志器
+    ctx.logger.info("命令执行中...")
+```
+</Tab>
+</Tabs>
+
+#### 执行过程
+
+1. 自动从 Click 上下文中提取 `CliState`
+2. 构建 `CommandContext` 对象
+3. 将其作为第一个参数传递给被装饰的函数
+
+## get_app_context
+
+获取当前应用上下文
+
+<Tabs>
+<Tab label="函数签名">
+```py
+def get_app_context() -> AppContext:
+    """
+    获取当前应用上下文
+    此函数会构建新的运行时环境，在正常的 Click 命令中应优先使用 pass_command_context
+    """
+```
+</Tab>
+<Tab label="使用示例">
+```py
+from bykpy.api import get_app_context
+
+# 在非命令环境中获取上下文
+context = get_app_context()
+print(f"应用路径: {context.paths.root_dir}")
+
+# 获取全局配置存储（默认 byk.config）
+config = context.store()
+config.set("debug", True)
+
+# 获取其他全局存储
+shared = context.store("shared")
+shared.set("user_id", "user123")
+
+# 获取名为 "server" 的命令的状态存储（默认 state）
+server_state = context.command_store("server")
+server_state.set("port", 8080)
+
+# 获取 server 命令的其他存储
+server_config = context.command_store("server", "config")
+server_config.set("timeout", 30)
+
+# 获取命令日志器
+logger = context.get_command_logger("my_command")
+logger.info("命令开始执行")
+```
+</Tab>
+</Tabs>

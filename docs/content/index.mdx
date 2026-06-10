@@ -1,0 +1,102 @@
+---
+description: bykpy 插件开发模板，包含项目结构、注册机制、按需加载和冲突处理指南
+---
+
+import {Tab, Tabs } from '@rspress/core/theme';
+
+# 插件模板
+
+bykpy插件开发模板
+
+## 项目结构
+
+```tree
+插件模板/
+├── src/
+│   └── my_plugin/
+│       ├── __init__.py
+│       ├── cli.py
+│       └── main.py
+└── pyproject.toml
+```
+
+<Tabs>
+<Tab label="cli.py">
+
+```py
+import click
+
+@click.command(help="第一个子命令")
+def hello():
+    click.echo("Hello World")
+
+@click.command(help="第二个子命令")
+def world():
+    click.echo("World")
+```
+
+</Tab>
+<Tab label="main.py">
+
+```py
+from bykpy import PluginProtocol
+
+class Plugin(PluginProtocol):
+    """一个插件可以声明多个子命令。"""
+
+    commands = {
+        "hello": "第一个子命令的描述",
+        "world": "第二个子命令的描述",
+    }
+
+    def register(self, cli):
+        from .cli import hello, world  # 延迟 import，按需加载
+        cli.add_command(hello)
+        cli.add_command(world)
+```
+
+</Tab>
+<Tab label="pyproject.toml">
+
+```toml
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my-plugin"
+version = "0.1.0"
+description = "bykpy plugin"
+requires-python = ">=3.10"
+
+[project.entry-points."bykpy.plugins"]
+my-plugin = "my_plugin.main:Plugin"
+```
+
+</Tab>
+</Tabs>
+
+## 插件注册机制
+
+插件通过 Python entry points 注册，entry point 指向一个继承 `PluginProtocol` 的类
+
+### PluginProtocol
+
+插件类仅需两个成员
+
+| 成员 | 类型 | 说明 |
+|------|------|------|
+| `commands` | `dict[str, str]` | 子命令名 → 描述，用于仪表盘展示 |
+| `register(self, cli)` | 实例方法 | 接收 `click.Group`，在此调用 `cli.add_command()` 注册子命令 |
+
+### 按需加载
+
+bykpy 启动时仅读取 `commands` dict 构建缓存（O(1) 次 IO），不实例化插件。用户执行对应子命令时才触发 `import → 实例化 → register`。
+
+:::tip 延迟导入
+建议在 `register` 方法内部 `from .cli import ...` 延迟导入，避免启动时加载不必要的依赖。
+:::
+
+### 同名命令冲突
+
+多个插件声明同名命令时，后加载的覆盖前者，并输出 warning 日志。

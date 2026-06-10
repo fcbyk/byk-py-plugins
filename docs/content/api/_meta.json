@@ -1,0 +1,17 @@
+[
+  {
+    "type": "file",
+    "name": "context",
+    "label": "Context"
+  },
+  {
+    "type": "file",
+    "name": "network",
+    "label": "Network"
+  },
+  {
+    "type": "file",
+    "name": "store",
+    "label": "StateStore"
+  }
+]

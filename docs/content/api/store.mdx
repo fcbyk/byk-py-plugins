@@ -1,0 +1,374 @@
+---
+description: 基于 JSON 文件的统一数据持久化系统，支持命令专属存储和全局共享存储
+---
+
+import { Tab, Tabs } from '@rspress/core/theme';
+
+# StateStore
+
+基于 JSON 文件的统一数据持久化系统。
+
+## StateStore 协议
+
+数据存储的核心接口，定义了所有数据操作的方法。
+
+<Tabs>
+<Tab label="协议定义">
+
+```py
+from pathlib import Path
+from typing import Any, Protocol
+
+class StateStore(Protocol):
+    """数据存储协议"""
+    
+    path: Path  # 数据文件路径
+    
+    def load(self) -> dict[str, Any]:
+        """加载全部数据"""
+        
+    def save(self, data: dict[str, Any]) -> dict[str, Any]:
+        """保存全部数据，返回保存后的数据"""
+        
+    def get(self, key: str, default: Any = None) -> Any:
+        """获取单个值"""
+        
+    def set(self, key: str, value: Any) -> dict[str, Any]:
+        """设置单个值，返回完整数据"""
+        
+    def update(self, values: dict[str, Any]) -> dict[str, Any]:
+        """批量更新多个值，返回更新后的数据"""
+        
+    def delete(self, key: str) -> dict[str, Any]:
+        """删除单个值，返回剩余数据"""
+        
+    def clear(self) -> dict[str, Any]:
+        """清空所有数据，返回空字典"""
+```
+
+</Tab>
+</Tabs>
+
+## 两种存储方式
+
+### 命令专属存储
+
+- 每个命令有独立的存储空间，互不干扰
+- 通过 `ctx.state(name)` 创建命名存储空间，`name` 默认参数为 `"state"`
+- 自动关联当前命令名，适合命令相关的状态数据
+- 可以创建多个不同的存储空间
+
+<Tabs>
+<Tab label="使用示例">
+
+```py
+import click
+from bykpy.api import pass_command_context
+
+@click.command()
+@pass_command_context
+def server(ctx):
+    """服务器命令。"""
+    # server 命令的专属状态（默认使用 state）
+    ctx.state().set("port", 8080)
+    ctx.state().set("host", "0.0.0.0")
+    ctx.state().set("running", True)
+    
+    # 也可以创建其他命名的存储
+    ctx.state("config").set("timeout", 30)
+    ctx.state("cache").set("last_check", "2024-01-01")
+
+@click.command()
+@pass_command_context
+def database(ctx):
+    """数据库命令。"""
+    # database 命令的专属状态（与 server 完全隔离）
+    ctx.state().set("db_path", "/data/mydb.sqlite")
+    ctx.state().set("max_connections", 100)
+```
+
+</Tab>
+<Tab label="持久化路径">
+
+```
+~/.byk/state/
+├── server/
+│   ├── state.json      # ctx.state() - server 命令的默认状态
+│   ├── config.json     # ctx.state("config") - server 命令的配置
+│   └── cache.json      # ctx.state("cache") - server 命令的缓存
+├── database/
+│   └── state.json      # ctx.state() - database 命令的默认状态
+└── other_command/
+    └── state.json      # 其他命令的默认状态
+```
+
+</Tab>
+</Tabs>
+
+### 全局存储
+
+- 通过 `ctx.app.store(name)` 创建任意命名的存储空间
+- `ctx.app.store()` 不带参数时，`name` 默认参数为 `"byk.config"`
+- 适合跨命令共享数据或应用级配置
+- 灵活扩展，可以创建多个不同的存储
+
+<Tabs>
+<Tab label="使用示例">
+
+```py
+from bykpy.api import pass_command_context
+
+@pass_command_context
+def settings(ctx):
+    # 等同于 ctx.app.store("byk.config")
+    config = ctx.app.store()    # 默认参数
+    config.set("theme", "dark")
+    config.set("language", "zh-CN")
+
+@pass_command_context
+def login(ctx):
+    # 创建共享存储空间
+    ctx.app.store("shared").set("user_id", "user123")
+    ctx.app.store("shared").set("token", "abc123xyz")
+
+@pass_command_context
+def status(ctx):
+    # 从共享存储读取
+    user_id = ctx.app.store("shared").get("user_id")
+```
+
+</Tab>
+<Tab label="持久化路径">
+
+```
+~/.byk/state/
+├── byk.config.json     # ctx.app.store()
+├── shared.json         # ctx.app.store("shared")
+└── cache.json          # ctx.app.store("cache")
+```
+
+</Tab>
+</Tabs>
+
+### 跨命令存储访问
+
+- 通过 `ctx.app.command_store(command_name, name)` 访问其他命令的专属存储
+- `name` 默认参数为 `"state"`
+- 适用于需要在不同命令间共享特定命令状态的场景
+
+<Tabs>
+<Tab label="使用示例">
+
+```py
+from bykpy.api import pass_command_context
+
+@pass_command_context
+def monitor(ctx):
+    # 读取 server 命令的状态
+    server_state = ctx.app.command_store("server")
+    port = server_state.get("port")
+    running = server_state.get("running", False)
+    
+    # 读取 server 命令的其他存储
+    server_config = ctx.app.command_store("server", "config")
+    timeout = server_config.get("timeout", 30)
+```
+
+</Tab>
+<Tab label="持久化路径">
+
+```
+~/.byk/state/
+├── server/
+│   ├── state.json      # ctx.app.command_store("server")
+│   └── config.json     # ctx.app.command_store("server", "config")
+└── database/
+    └── state.json      # ctx.app.command_store("database")
+```
+
+</Tab>
+</Tabs>
+
+## 基本操作
+
+### 读取数据
+
+<Tabs>
+<Tab label="load">
+
+```py
+# 加载所有数据
+data = ctx.state().load()
+print(data)  # {'key1': 'value1', 'key2': 123}
+```
+
+</Tab>
+<Tab label="get">
+
+```py
+# 获取单个值
+port = ctx.state().get("port")
+timeout = ctx.state().get("timeout", 30)  # 带默认值
+
+# 如果键不存在，返回 None 或默认值
+value = ctx.state().get("nonexistent")  # None
+value = ctx.state().get("nonexistent", default="hello")  # "hello"
+```
+
+</Tab>
+</Tabs>
+
+### 写入数据
+
+<Tabs>
+<Tab label="set">
+
+```py
+# 设置单个值
+ctx.state().set("port", 8080)
+ctx.state().set("host", "localhost")
+ctx.state().set("debug", True)
+
+# 返回当前所有数据
+result = ctx.state().set("key", "value")
+print(result)  # {'key': 'value', ...其他数据}
+```
+
+</Tab>
+<Tab label="update">
+
+```py
+# 批量更新多个值
+ctx.state().update({
+    "host": "0.0.0.0",
+    "port": 9000,
+    "debug": False
+})
+
+# 返回更新后的所有数据
+result = ctx.state().update({"key1": "val1", "key2": "val2"})
+```
+
+</Tab>
+<Tab label="save">
+
+```py
+# 完全替换数据（之前的所有数据都会被清除）
+ctx.state().save({
+    "new_key": "new_value"
+})
+```
+
+</Tab>
+</Tabs>
+
+### 删除数据
+
+<Tabs>
+<Tab label="delete">
+
+```py
+# 删除指定的键
+ctx.state().delete("old_key")
+
+# 返回删除后的剩余数据
+result = ctx.state().delete("key")
+print(result)  # 不包含被删除的键
+```
+
+</Tab>
+<Tab label="clear">
+
+```py
+# 清空所有数据
+ctx.state().clear()
+
+# 返回空字典
+result = ctx.state().clear()
+print(result)  # {}
+```
+
+</Tab>
+</Tabs>
+
+## 注意事项
+
+### 数据类型限制
+
+数据必须是 JSON 可序列化的类型：
+
+```py
+from bykpy.api import pass_command_context
+
+@pass_command_context
+def example(ctx):
+    # ✅ 支持的类型
+    ctx.state().set("string", "text")
+    ctx.state().set("number", 123)
+    ctx.state().set("float", 3.14)
+    ctx.state().set("bool", True)
+    ctx.state().set("list", [1, 2, 3])
+    ctx.state().set("dict", {"key": "value"})
+    ctx.state().set("none", None)
+
+    # ❌ 不支持的类型
+    ctx.state().set("set", {1, 2, 3})           # set 不可序列化
+    ctx.state().set("complex", complex(1, 2))    # 复数不可序列化
+    ctx.state().set("bytes", b"data")           # bytes 不可序列化
+```
+
+如果需要存储不支持的类型，可以先转换为字符串或其他可序列化格式。
+
+### 并发安全
+
+存储不是线程安全的，在多线程环境下需要额外处理：
+
+```py
+import threading
+from bykpy.api import pass_command_context
+
+lock = threading.Lock()
+
+@pass_command_context
+def safe_operations(ctx):
+    with lock:
+        ctx.state().set("key", "value")
+    
+    with lock:
+        ctx.state().update({"key1": "val1", "key2": "val2"})
+```
+
+对于多进程场景，需要考虑文件锁机制。
+
+### 错误处理
+
+操作可能因文件系统问题失败：
+
+```py
+from bykpy.api import pass_command_context
+
+@pass_command_context
+def safe_operation(ctx):
+    try:
+        ctx.state().set("key", "value")
+    except (IOError, OSError) as e:
+        ctx.logger.error(f"数据保存失败: {e}")
+        # 降级处理：使用内存缓存或跳过
+```
+
+建议在关键操作中添加错误处理。
+
+## 架构说明
+
+数据存储系统的层次结构：
+
+```
+CommandContext
+├── state(name) → StateStore (~/.byk/state/{command_name}/{name}.json)
+│   └── name 默认为 "state"
+└── app (AppContext)
+    ├── store(name) → StateStore (~/.byk/state/{name}.json)
+    │   └── name 默认为 "byk.config"
+    └── command_store(command_name, name) → StateStore (~/.byk/state/{command_name}/{name}.json)
+        └── name 默认为 "state"
+```

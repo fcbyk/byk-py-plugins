@@ -1,0 +1,46 @@
+{
+    "$priority": -1,
+
+    "git": {
+        "查看本地标签": "git tag",
+        "查看远程库标签": "git ls-remote --tags origin",
+        "推送标签到远程库": "git push origin --tags",
+        "撤销上一次提交": "git reset --soft HEAD~1"
+    },
+
+    "bykcli": {
+        "安装": "pip install bykcli",
+        "卸载": "pip uninstall bykcli"
+    },
+
+    "byk-hello": {
+        "$cwd": "./byk-hello",
+        "安装": "pip install -e .", 
+        "卸载": "pip uninstall byk-hello -y"
+    },
+
+    "byk-ai": {
+        "$cwd": "./byk-ai",
+        "安装": "pip install -e .", 
+        "卸载": "pip uninstall byk-ai -y"
+    },
+
+    "byk-pick": {
+        "$cwd": "./byk-pick",
+        "安装": "pip install -e .", 
+        "卸载": "pip uninstall byk-pick -y"
+    },
+
+    "bykpy": {
+        "$cwd": "./bykpy",
+        "安装": "pip install -e .", 
+        "卸载": "pip uninstall bykpy -y"
+    },
+
+    "发布": {
+        "检查上传的文件": "twine check dist/*",
+        "上传到PyPI": "twine upload dist/*"
+    },
+
+    "清理文件": "find . -type d \\( -name '__pycache__' -o -name '.pytest_cache' \\) -exec rm -rf {} +"
+}

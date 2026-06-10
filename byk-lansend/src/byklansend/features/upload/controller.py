@@ -2,7 +2,7 @@ from typing import Optional
 
 from flask import request
 
-from byklansend.common.response import R
+from bykpy.api import R
 from byklansend.features.upload.service import UploadService
 
 

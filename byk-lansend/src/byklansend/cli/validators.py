@@ -1,7 +1,8 @@
+"""CLI 参数校验（lansend 专用部分）。"""
+
 import os
 
 import click
-from bykpy.api import ensure_port_available
 
 
 def validate_directory(directory: str) -> str | None:
@@ -15,13 +16,3 @@ def validate_directory(directory: str) -> str | None:
         return None
 
     return os.path.abspath(directory)
-
-
-def validate_port(port: int) -> bool:
-    """检查端口是否可用。"""
-    try:
-        ensure_port_available(port)
-        return True
-    except OSError:
-        click.echo(f"Error: Port {port} is already in use")
-        return False

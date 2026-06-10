@@ -1,9 +1,16 @@
 import threading
 import click
-import webbrowser
-from bykpy.api import CommandContext, pass_command_context, get_private_networks
+from bykpy.api import (
+    CommandContext,
+    check_port,
+    copy_to_clipboard,
+    echo_network_urls,
+    get_private_networks,
+    open_browser,
+    pass_command_context,
+    wait_for_server_ready,
+)
 
-from .utils import check_port, echo_network_urls, copy_to_clipboard, wait_for_server_ready
 from .controller import create_pick_app
 
 
@@ -63,7 +70,7 @@ def pick(ctx: CommandContext, port, no_browser, files, password):
         server_thread.start()
         if wait_for_server_ready(port):
             try:
-                webbrowser.open(url_network)
+                open_browser(url_network)
                 click.echo(" Attempted to open picker page in browser")
             except Exception:
                 click.echo(" Note: Could not auto-open browser, please visit the URL above")

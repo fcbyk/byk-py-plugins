@@ -1,10 +1,12 @@
 import os
 import uuid
-import click
 from datetime import datetime
+from pathlib import Path
+
+import click
 from flask import jsonify, request, send_file, url_for, Response
 
-from .web import create_spa
+from bykpy.api import create_spa
 from .service import PickService
 
 SERVER_SESSION_ID = str(uuid.uuid4())
@@ -14,7 +16,8 @@ def create_pick_app(
     admin_password: str | None = None,
     state_store=None,
 ):
-    app = create_spa(entry_html="index.html", page=["/admin", "/f"])
+    static_dir = Path(__file__).parent / "dist"
+    app = create_spa(static_dir=static_dir, entry_html="index.html", page=["/admin", "/f"])
     app.config["PICK_ADMIN_PASSWORD"] = admin_password
     app.config["PICK_FILES_ROOT"] = os.path.abspath(files_root) if files_root else None
 

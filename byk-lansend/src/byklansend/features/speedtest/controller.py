@@ -2,7 +2,7 @@ from typing import Optional
 
 from flask import Response, request, stream_with_context
 
-from byklansend.common.response import R
+from bykpy.api import R
 
 
 def _try_int(v) -> Optional[int]:

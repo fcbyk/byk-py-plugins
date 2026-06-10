@@ -4,11 +4,11 @@ import subprocess
 import sys
 import time
 from functools import wraps
+from pathlib import Path
+
 from flask import request, session, current_app, redirect
 from flask_socketio import SocketIO, disconnect
-from bykpy.api import get_private_networks
-
-from .web import create_spa, R
+from bykpy.api import R, create_spa, get_private_networks
 from .service import SlideService
 
 
@@ -107,7 +107,8 @@ def _consume_login_token(token):
 
 
 def create_slide_app(service: SlideService):
-    app = create_spa("index.html")
+    static_dir = Path(__file__).parent / "dist"
+    app = create_spa(static_dir=static_dir, entry_html="index.html")
     app.secret_key = os.urandom(24)
     app.config["SLIDE_LOCAL_IPS"] = _collect_local_ips()
     socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', manage_session=False)

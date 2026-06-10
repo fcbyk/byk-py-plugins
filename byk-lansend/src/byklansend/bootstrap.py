@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from byklansend.common.response import R
-from byklansend.common.web import create_spa
+from bykpy.api import R, create_spa
+
 from byklansend.features.chat.controller import register_routes as register_chat_routes
 from byklansend.features.chat.service import ChatService
 from byklansend.features.chat.store import ChatStore

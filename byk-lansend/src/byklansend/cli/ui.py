@@ -1,42 +1,10 @@
-import time
-import urllib.error
-import urllib.request
-import webbrowser
+"""CLI 交互函数（lansend 专用部分）。"""
+
 from typing import Any
 
 import click
 
-
-def echo_network_urls(networks: list[dict[str, Any]], port: int, include_virtual: bool = False) -> None:
-    """打印可访问的本地和局域网 URL。"""
-    for host in ["localhost", "127.0.0.1"]:
-        click.echo(f"{click.style(' Local', fg=None)}: {click.style(f'http://{host}:{port}', fg='cyan')}")
-
-    for net in networks:
-        if net["virtual"] and not include_virtual:
-            continue
-
-        for ip in net["ips"]:
-            if ip == "127.0.0.1":
-                continue
-            iface = net["iface"]
-            click.echo(
-                f"{click.style(f' [{iface}] Network URL:', fg=None)}: "
-                f"{click.style(f'http://{ip}:{port}', fg='cyan')}"
-            )
-
-
-def copy_to_clipboard(text: str, label: str = "URL", output_prefix: str = " ", silent: bool = False) -> None:
-    """将文本复制到剪贴板。"""
-    try:
-        import pyperclip
-
-        pyperclip.copy(text)
-        if not silent:
-            click.echo(f"{output_prefix}{label} has been copied to clipboard")
-    except Exception:
-        if not silent:
-            click.echo(f"{output_prefix}Warning: Could not copy {label} to clipboard")
+from bykpy.api import copy_to_clipboard, echo_network_urls
 
 
 def prompt_upload_password(ask_password: bool, disable_upload: bool) -> str | None:
@@ -50,26 +18,6 @@ def prompt_upload_password(ask_password: bool, disable_upload: bool) -> str | No
         )
         return password if password else "123456"
     return None
-
-
-def wait_for_server_ready(port: int, host: str = "127.0.0.1", timeout: float = 10.0) -> bool:
-    """轮询直到 Web 服务可正常响应首页请求。"""
-    url = f"http://{host}:{port}/"
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        try:
-            with urllib.request.urlopen(url, timeout=0.5) as resp:
-                if resp.status == 200:
-                    return True
-        except (urllib.error.URLError, TimeoutError, OSError):
-            pass
-        time.sleep(0.05)
-    return False
-
-
-def open_browser(url: str) -> None:
-    """在默认浏览器中打开分享页。"""
-    webbrowser.open(url)
 
 
 def print_server_summary(

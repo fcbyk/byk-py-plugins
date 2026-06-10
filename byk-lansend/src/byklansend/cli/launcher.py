@@ -1,16 +1,14 @@
 import threading
 from dataclasses import dataclass
 
-from bykpy.api import get_private_networks
+from bykpy.api import check_port, get_private_networks, open_browser, wait_for_server_ready
 
 from byklansend.bootstrap import start_web_server
 from byklansend.cli.ui import (
-    open_browser,
     print_server_summary,
     prompt_upload_password,
-    wait_for_server_ready,
 )
-from byklansend.cli.validators import validate_directory, validate_port
+from byklansend.cli.validators import validate_directory
 from byklansend.common.config import LansendConfig
 from byklansend.features.files.service import FileShareService
 
@@ -51,7 +49,7 @@ def run_lansend(options: LaunchOptions) -> None:
     if config is None:
         return
 
-    if not validate_port(options.port):
+    if not check_port(options.port):
         return
 
     networks = get_private_networks()

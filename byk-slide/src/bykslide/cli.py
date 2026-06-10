@@ -1,12 +1,19 @@
 import threading
-import webbrowser
 
 import click
-from bykpy.api import get_private_networks, CommandContext, pass_command_context
+from bykpy.api import (
+    CommandContext,
+    check_port,
+    copy_to_clipboard,
+    echo_network_urls,
+    get_private_networks,
+    open_browser,
+    pass_command_context,
+    wait_for_server_ready,
+)
 
 from .service import SlideService
 from .controller import create_slide_app
-from .utils import check_port, echo_network_urls, copy_to_clipboard, wait_for_server_ready
 
 
 @click.command(name="slide", help="Start PPT remote control server, control slides via mobile web page")
@@ -51,7 +58,7 @@ def slide(ctx: CommandContext, port):
     # 等待服务器就绪后自动打开浏览器
     def _auto_open():
         if wait_for_server_ready(port):
-            webbrowser.open(f"http://{local_ip}:{port}")
+            open_browser(f"http://{local_ip}:{port}")
 
     threading.Thread(target=_auto_open, daemon=True).start()
 

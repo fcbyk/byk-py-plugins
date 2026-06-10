@@ -8,7 +8,7 @@ from typing import Dict, List
 
 from flask import Response, abort, request, stream_with_context
 
-from byklansend.common.response import R
+from bykpy.api import R
 from byklansend.features.files.service import FileShareService
 
 

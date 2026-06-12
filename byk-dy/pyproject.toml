@@ -1,0 +1,27 @@
+[project]
+name = "byk-dy"
+version = "0.1.0"
+description = "Douyin video parsing and downloading tool"
+requires-python = ">=3.10"
+dependencies = [
+    "bykpy>=0.1.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.0",
+    "PyYAML>=6.0",
+    "rich>=13.0",
+    "gmssl>=3.0",
+    "click>=8.0",
+]
+
+[project.entry-points."byk.plugins"]
+byk-dy = "bykdy.main:Plugin"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -15,7 +15,8 @@
         "byk-ai": "pip uninstall byk-ai -y",
         "byk-pick": "pip uninstall byk-pick -y",
         "byk-lansend": "pip uninstall byk-lansend -y",
-        "byk-slide": "pip uninstall byk-slide -y"
+        "byk-slide": "pip uninstall byk-slide -y",
+        "byk-dy": "pip uninstall byk-dy -y"
     },
 
     "安装":{
@@ -25,7 +26,8 @@
         "byk-pick": {"$cmd": "pip install -e .","$cwd": "./byk-pick"},
         "byk-lansend": {"$cmd": "pip install -e .","$cwd": "./byk-lansend"},
         "byk-slide": {"$cmd": "pip install -e .","$cwd": "./byk-slide"},
-        "bykpy": {"$cmd": "pip install -e .","$cwd": "./bykpy"}
+        "bykpy": {"$cmd": "pip install -e .","$cwd": "./bykpy"},
+        "byk-dy": {"$cmd": "pip install -e .","$cwd": "./byk-dy"}
     },
 
     "发布": {

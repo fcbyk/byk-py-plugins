@@ -12,3 +12,4 @@ Monorepo for [byk](https://github.com/fcbyk/bykcli)'s Python plugin runtime, SDK
 | [byk-slide](./byk-slide) | Control PowerPoint slides and mouse <br/> actions remotely from your phone over LAN | [![PyPI](https://img.shields.io/pypi/v/byk-slide.svg)](https://pypi.org/project/byk-slide/) |
 | [byk-ai](./byk-ai) | Use OpenAI API to chat in terminal. | none |
 | [byk-pick](./byk-pick) | web-based random picker and file lottery | none |
+| [byk-dy](./byk-dy) | Douyin video parsing and downloading tool. | none |

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byk-jiahao"
+version = "2026.6.1"
+description = "Hacker-style terminal simulator for byk"
+requires-python = ">=3.10"
+dependencies = [
+    "bykpy>=0.1.0,<1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.entry-points."byk.plugins"]
+byk-jiahao = "jiahao.byk:Plugin"

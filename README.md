@@ -13,3 +13,4 @@ Monorepo for [byk](https://github.com/fcbyk/bykcli)'s Python plugin runtime, SDK
 | [byk-ai](./byk-ai) | Use OpenAI API to chat in terminal. | none |
 | [byk-pick](./byk-pick) | web-based random picker and file lottery | none |
 | [byk-dy](./byk-dy) | Douyin video parsing and downloading tool. | none |
+| [byk-jiahao](./byk-jiahao) | Hacker-style terminal simulator. All fake, just for show. | none |
